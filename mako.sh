@@ -9,8 +9,8 @@ restore='\033[0m'
 clear
 
 # Piasek Kernel Version
-BASE_SAND_VER="Piasek"
-VER=".1"
+BASE_SAND_VER="Piasek-KK"
+VER=" v2"
 SAND_VER=$BASE_SAND_VER$VER
 
 # Piasek Variables
