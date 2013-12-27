@@ -1,13 +1,16 @@
 # Android makefile for the WLAN Module
 
+# Assume no targets will be supported
+WLAN_CHIPSET :=
+
 # Build/Package options for 8960 target
 ifeq ($(call is-board-platform,msm8960),true)
 WLAN_CHIPSET := prima
 WLAN_SELECT := CONFIG_PRIMA_WLAN=m
 endif
 
-# Build/Package options for 8974, 8226 targets
-ifeq ($(call is-board-platform-in-list,msm8974 msm8226),true)
+# Build/Package options for 8974, 8226, 8610 targets
+ifeq ($(call is-board-platform-in-list,msm8974 msm8226 msm8610),true)
 WLAN_CHIPSET := pronto
 WLAN_SELECT := CONFIG_PRONTO_WLAN=m
 endif
@@ -33,7 +36,8 @@ else
     WLAN_BLD_DIR := vendor/qcom/opensource/wlan
 endif
 
-ifeq ($(call is-android-codename,JELLY_BEAN),true)
+# DLKM_DIR was moved for JELLY_BEAN (PLATFORM_SDK 16)
+ifeq ($(call is-platform-sdk-version-at-least,16),true)
        DLKM_DIR := $(TOP)/device/qcom/common/dlkm
 else
        DLKM_DIR := build/dlkm
@@ -80,14 +84,10 @@ KBUILD_OPTIONS += MODNAME=wlan
 KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 KBUILD_OPTIONS += $(WLAN_SELECT)
 
-
-VERSION=$(shell grep -w "VERSION =" $(TOP)/kernel/Makefile | sed 's/^VERSION = //' )
-PATCHLEVEL=$(shell grep -w "PATCHLEVEL =" $(TOP)/kernel/Makefile | sed 's/^PATCHLEVEL = //' )
-
 include $(CLEAR_VARS)
 LOCAL_MODULE              := $(WLAN_CHIPSET)_wlan.ko
 LOCAL_MODULE_KBUILD_NAME  := wlan.ko
-LOCAL_MODULE_TAGS         := optional
+LOCAL_MODULE_TAGS         := debug
 LOCAL_MODULE_DEBUG_ENABLE := true
 LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/$(WLAN_CHIPSET)
 include $(DLKM_DIR)/AndroidKernelModule.mk

@@ -100,13 +100,6 @@
 #endif
 
 
-// UAPSD Mask bits
-// (Bit0:VO; Bit1:VI; Bit2:BK; Bit3:BE all other bits are ignored)
-#define HDD_AC_VO 0x1
-#define HDD_AC_VI 0x2
-#define HDD_AC_BK 0x4
-#define HDD_AC_BE 0x8
-
 #define WLAN_HDD_MAX_DSCP 0x3f
 
 static sme_QosWmmUpType hddWmmDscpToUpMap[WLAN_HDD_MAX_DSCP+1];
@@ -153,6 +146,7 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    v_U32_t service_interval;
    v_U32_t suspension_interval;
    sme_QosWmmDirType direction;
+   v_BOOL_t psb;
 
 
    // The TSPEC must be valid
@@ -180,18 +174,20 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
       VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                 "%s: No service interval supplied",
                 __func__);
-      return;
+      service_interval = 0;
    }
 
    // determine the suspension interval & direction
    suspension_interval = pAc->wmmAcTspecInfo.suspension_interval;
    direction = pAc->wmmAcTspecInfo.ts_info.direction;
+   psb = pAc->wmmAcTspecInfo.ts_info.psb;
 
    // if we have previously enabled U-APSD, have any params changed?
    if ((pAc->wmmAcUapsdInfoValid) &&
        (pAc->wmmAcUapsdServiceInterval == service_interval) &&
        (pAc->wmmAcUapsdSuspensionInterval == suspension_interval) &&
-       (pAc->wmmAcUapsdDirection == direction))
+       (pAc->wmmAcUapsdDirection == direction) &&
+       (pAc->wmmAcIsUapsdEnabled == psb))
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                 "%s: No change in U-APSD parameters",
@@ -239,6 +235,7 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    pAc->wmmAcUapsdServiceInterval = service_interval;
    pAc->wmmAcUapsdSuspensionInterval = suspension_interval;
    pAc->wmmAcUapsdDirection = direction;
+   pAc->wmmAcIsUapsdEnabled = psb;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
              "%s: Enabled UAPSD in TL srv_int=%ld "
@@ -1295,7 +1292,8 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
    {
    case WLANTL_AC_VO:
       qosInfo.ts_info.up = SME_QOS_WMM_UP_VO;
-      qosInfo.ts_info.psb = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask & 0x01;
+      qosInfo.ts_info.psb = ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask &
+                              SME_QOS_UAPSD_VO) ? 1 : 0;
       qosInfo.ts_info.direction = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraDirAcVo;
       qosInfo.ts_info.tid = 255;
       qosInfo.mean_data_rate = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraMeanDataRateAcVo;
@@ -1307,7 +1305,8 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
       break;
    case WLANTL_AC_VI:
       qosInfo.ts_info.up = SME_QOS_WMM_UP_VI;
-      qosInfo.ts_info.psb = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask & 0x02;
+      qosInfo.ts_info.psb = ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask &
+                              SME_QOS_UAPSD_VI) ? 1 : 0;
       qosInfo.ts_info.direction = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraDirAcVi;
       qosInfo.ts_info.tid = 255;
       qosInfo.mean_data_rate = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraMeanDataRateAcVi;
@@ -1320,7 +1319,8 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
    default:
    case WLANTL_AC_BE:
       qosInfo.ts_info.up = SME_QOS_WMM_UP_BE;
-      qosInfo.ts_info.psb = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask & 0x08;
+      qosInfo.ts_info.psb = ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask &
+                              SME_QOS_UAPSD_BE) ? 1 : 0;
       qosInfo.ts_info.direction = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraDirAcBe;
       qosInfo.ts_info.tid = 255;
       qosInfo.mean_data_rate = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraMeanDataRateAcBe;
@@ -1332,7 +1332,8 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
       break;
    case WLANTL_AC_BK:
       qosInfo.ts_info.up = SME_QOS_WMM_UP_BK;
-      qosInfo.ts_info.psb = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask & 0x04;
+      qosInfo.ts_info.psb = ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask &
+                              SME_QOS_UAPSD_BK) ? 1 : 0;
       qosInfo.ts_info.direction = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraDirAcBk;
       qosInfo.ts_info.tid = 255;
       qosInfo.mean_data_rate = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraMeanDataRateAcBk;
@@ -1522,6 +1523,38 @@ VOS_STATUS hdd_wmm_adapter_init( hdd_adapter_t *pAdapter )
 
    return VOS_STATUS_SUCCESS;
 }
+
+/**============================================================================
+  @brief hdd_wmm_adapter_clear() - Function which will clear the WMM status
+  for all the ACs
+
+  @param pAdapter : [in]  pointer to Adapter context
+
+  @return         : VOS_STATUS_SUCCESS if succssful
+                  : other values if failure
+
+  ===========================================================================*/
+VOS_STATUS hdd_wmm_adapter_clear( hdd_adapter_t *pAdapter )
+{
+   hdd_wmm_ac_status_t *pAcStatus;
+   WLANTL_ACEnumType acType;
+   VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
+             "%s: Entered", __func__);
+   for (acType = 0; acType < WLANTL_MAX_AC; acType++)
+   {
+      pAcStatus = &pAdapter->hddWmmStatus.wmmAcStatus[acType];
+      pAcStatus->wmmAcAccessRequired = VOS_FALSE;
+      pAcStatus->wmmAcAccessNeeded = VOS_FALSE;
+      pAcStatus->wmmAcAccessPending = VOS_FALSE;
+      pAcStatus->wmmAcAccessFailed = VOS_FALSE;
+      pAcStatus->wmmAcAccessGranted = VOS_FALSE;
+      pAcStatus->wmmAcAccessAllowed = VOS_FALSE;
+      pAcStatus->wmmAcTspecValid = VOS_FALSE;
+      pAcStatus->wmmAcUapsdInfoValid = VOS_FALSE;
+   }
+   return VOS_STATUS_SUCCESS;
+}
+
 /**============================================================================
   @brief hdd_wmm_close() - Function which will perform any necessary work to
   to clean up the WMM functionality prior to the kernel module unload
@@ -1808,18 +1841,35 @@ done:
 v_U16_t hdd_wmm_select_queue(struct net_device * dev, struct sk_buff *skb)
 {
    WLANTL_ACEnumType ac;
-   sme_QosWmmUpType up = 0;
+   sme_QosWmmUpType up = SME_QOS_WMM_UP_BE;
    v_USHORT_t queueIndex;
-
    hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
 
+   /*Get the Station ID*/
+   if (WLAN_HDD_IBSS == pAdapter->device_mode)
+   {
+       v_U8_t *pSTAId = (v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
+       v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
+
+       if ( VOS_STATUS_SUCCESS !=
+            hdd_Ibss_GetStaId(&pAdapter->sessionCtx.station,
+                               pDestMacAddress, pSTAId))
+       {
+          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                     "%s: Failed to find right station pDestMacAddress: "
+                     MAC_ADDRESS_STR , __func__,
+                     MAC_ADDR_ARRAY(pDestMacAddress->bytes));
+          *pSTAId = HDD_WLAN_INVALID_STA_ID;
+          goto done;
+       }
+   }
    // if we don't want QoS or the AP doesn't support Qos
    // All traffic will get equal opportuniy to transmit data frames.
    if( hdd_wmm_is_active(pAdapter) ) {
       /* Get the user priority from IP header & corresponding AC */
       hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up);
    }
-
+done:
    skb->priority = up;
    queueIndex = hddLinuxUpToAcMap[skb->priority];
 

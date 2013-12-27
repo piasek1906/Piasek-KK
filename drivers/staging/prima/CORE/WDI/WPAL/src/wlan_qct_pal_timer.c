@@ -60,6 +60,8 @@
 #include "wlan_qct_os_status.h"
 #include "vos_threads.h"
 
+#include <linux/delay.h>
+
 /*---------------------------------------------------------------------------
  \brief wpalTimerCback - VOS timer callback function
 
@@ -228,4 +230,17 @@ wpt_status wpalSleep(wpt_uint32 timeout)
 {
    vos_sleep( timeout );
    return eWLAN_PAL_STATUS_SUCCESS;
+}
+
+/*---------------------------------------------------------------------------
+    wpalBusyWait - Thread busy wait with specified usec
+    Param:
+        usecDelay - amount of time to wait. In unit of micro-seconds.
+    Return:
+        NONE
+---------------------------------------------------------------------------*/
+void wpalBusyWait(wpt_uint32 usecDelay)
+{
+   vos_busy_wait(usecDelay);
+   return;
 }

@@ -54,6 +54,8 @@
 #include "sirCommon.h"
 #include "limUtils.h"
 
+#define IBSS_STATIONS_USED_DURING_INIT 4  //(broadcast + self + p2p + softap)
+
 void limIbssInit(tpAniSirGlobal);
 void limIbssDelete(tpAniSirGlobal,tpPESession psessionEntry);
 tSirRetStatus limIbssCoalesce(tpAniSirGlobal, tpSirMacMgmtHdr, tpSchBeaconStruct, tANI_U8*,tANI_U32, tANI_U16,tpPESession);
@@ -64,4 +66,4 @@ void limIbssDelBssRspWhenCoalescing(tpAniSirGlobal,  void *,tpPESession);
 void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void * msg, tpPESession pSessionEntry);
 void limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams,tpPESession pSessionEntry);
 void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry);
-
+void limProcessIbssPeerInactivity(tpAniSirGlobal pMac, void *buf);

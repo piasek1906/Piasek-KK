@@ -158,12 +158,14 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     tpSirMacMgmtHdr     pHdr;
     tANI_U8             channelNum;
     tANI_U8             rxChannel;
+    tANI_U8             rfBand = 0;
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     VOS_ASSERT(WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo) >= SIR_MAC_B_PR_SSID_OFFSET);
     ieLen    = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo) - SIR_MAC_B_PR_SSID_OFFSET;
     rxChannel = WDA_GET_RX_CH(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+    rfBand = WDA_GET_RX_RFBAND(pRxPacketInfo);
 
 
     /**
@@ -176,8 +178,8 @@ limCollectBssDescription(tpAniSirGlobal pMac,
                     sizeof(tANI_U32) + ieLen);
 
     // Copy BSS Id
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) &pBssDescr->bssId,
-                  (tANI_U8 *) pHdr->bssId,
+    vos_mem_copy((tANI_U8 *) &pBssDescr->bssId,
+                 (tANI_U8 *) pHdr->bssId,
                   sizeof(tSirMacAddr));
 
     // Copy Timestamp, Beacon Interval and Capability Info
@@ -205,16 +207,20 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     pBssDescr->channelId = limGetChannelFromBeacon(pMac, pBPR);
 
     if (pBssDescr->channelId == 0)
-   {
-      /* If the channel Id is not retrieved from Beacon, extract the channel from BD */
-      /* Unmapped the channel.This We have to do since we have done mapping in the hal to
+    {
+       /* If the channel Id is not retrieved from Beacon, extract the channel from BD */
+       /* Unmapped the channel.This We have to do since we have done mapping in the hal to
          overcome  the limitation of RXBD of not able to accomodate the bigger channel number.*/
-      if (!( rxChannel = limUnmapChannel(rxChannel)))
-      {
-         rxChannel = pMac->lim.gLimCurrentScanChannelId;
-      }
-      pBssDescr->channelId = rxChannel;
-   }
+       if ((!rfBand) || IS_5G_BAND(rfBand))
+       {
+          rxChannel = limUnmapChannel(rxChannel);
+       }
+       if (!rxChannel)
+       {
+          rxChannel = pMac->lim.gLimCurrentScanChannelId;
+       }
+       pBssDescr->channelId = rxChannel;
+    }
 
     pBssDescr->channelIdSelf = pBssDescr->channelId;
     //set the network type in bss description
@@ -271,7 +277,7 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     }
 #endif
     // Copy IE fields
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) &pBssDescr->ieFields,
+    vos_mem_copy((tANI_U8 *) &pBssDescr->ieFields,
                   pBody + SIR_MAC_B_PR_SSID_OFFSET,
                   ieLen);
 
@@ -316,7 +322,7 @@ tANI_BOOLEAN limIsScanRequestedSSID(tpAniSirGlobal pMac, tSirMacSSid *ssId)
 
     for (i = 0; i < pMac->lim.gpLimMlmScanReq->numSsid; i++)
     {
-        if ( eANI_BOOLEAN_TRUE == palEqualMemory( pMac->hHdd,(tANI_U8 *) ssId,
+        if ( eANI_BOOLEAN_TRUE == vos_mem_compare((tANI_U8 *) ssId,
                    (tANI_U8 *) &pMac->lim.gpLimMlmScanReq->ssId[i],
                    (tANI_U8) (pMac->lim.gpLimMlmScanReq->ssId[i].length + 1)))
         {
@@ -373,11 +379,11 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     //Checking if scanning for a particular BSSID
     if ((fScanning) && (pMac->lim.gpLimMlmScanReq)) 
     {
-        fFound = palEqualMemory(pMac->hHdd, pHdr->addr3, &pMac->lim.gpLimMlmScanReq->bssId, 6);
+        fFound = vos_mem_compare(pHdr->addr3, &pMac->lim.gpLimMlmScanReq->bssId, 6);
         if (!fFound)
         {
             if ((pMac->lim.gpLimMlmScanReq->p2pSearch) &&
-               (palEqualMemory(pMac->hHdd, pBPR->P2PProbeRes.P2PDeviceInfo.P2PDeviceAddress, 
+               (vos_mem_compare(pBPR->P2PProbeRes.P2PDeviceInfo.P2PDeviceAddress,
                &pMac->lim.gpLimMlmScanReq->bssId, 6)))
             {
                 fFound = eANI_BOOLEAN_TRUE;
@@ -407,7 +413,7 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
            !limIsScanRequestedSSID(pMac, &pBPR->ssId)) ||
           (!fFound && (pMac->lim.gpLimMlmScanReq &&
                        pMac->lim.gpLimMlmScanReq->bssId) &&
-           !palEqualMemory(pMac->hHdd, bssid,
+           !vos_mem_compare(bssid,
                            &pMac->lim.gpLimMlmScanReq->bssId, 6))))
     {
         /**
@@ -477,20 +483,21 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     ieLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
     if (ieLen <= SIR_MAC_B_PR_SSID_OFFSET)
     {
-               limLog(pMac, LOGP,
-                   FL("RX packet has invalid length %d\n"), ieLen);
-                  return;
+        limLog(pMac, LOGP,
+               FL("RX packet has invalid length %d"), ieLen);
+        return;
     }
 
     ieLen -= SIR_MAC_B_PR_SSID_OFFSET;
 
     frameLen = sizeof(tLimScanResultNode) + ieLen - sizeof(tANI_U32); //Sizeof(tANI_U32) is for ieFields[1]
 
-    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pBssDescr, frameLen))
+    pBssDescr = vos_mem_malloc(frameLen);
+    if ( NULL == pBssDescr )
     {
         // Log error
         limLog(pMac, LOGP,
-           FL("call for palAllocateMemory failed for storing BSS description"));
+           FL("call for AllocateMemory failed for storing BSS description"));
 
         return;
     }
@@ -503,10 +510,6 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     limCollectBssDescription(pMac, &pBssDescr->bssDescription,
                              pBPR, pRxPacketInfo);
 #endif
-    /* Calling dfsChannelList which will convert DFS channel
-     * to Active channel for x secs if this channel is DFS channel */
-    limSetDFSChannelList(pMac, pBssDescr->bssDescription.channelIdSelf,
-                               &pMac->lim.dfschannelList);
     pBssDescr->bssDescription.fProbeRsp = fProbeRsp;
 
     pBssDescr->next = NULL;
@@ -597,7 +600,7 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
 
     if( eHAL_STATUS_SUCCESS != status )
     {
-        palFreeMemory( pMac->hHdd, pBssDescr );
+        vos_mem_free( pBssDescr );
     }
 } /****** end limCheckAndAddBssDescription() ******/
 
@@ -715,13 +718,13 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
     {
         //For infrastructure, check BSSID and SSID. For IBSS, check more
         pSirCapTemp = (tSirMacCapabilityInfo *)&ptemp->bssDescription.capabilityInfo;
-        if((pSirCapTemp->ess == pSirCap->ess) && //matching ESS type first
-            (palEqualMemory( pMac->hHdd,(tANI_U8 *) pBssDescr->bssDescription.bssId,
+        if ((pSirCapTemp->ess == pSirCap->ess) && //matching ESS type first
+            (vos_mem_compare( (tANI_U8 *) pBssDescr->bssDescription.bssId,
                       (tANI_U8 *) ptemp->bssDescription.bssId,
                       sizeof(tSirMacAddr))) &&   //matching BSSID
             (pBssDescr->bssDescription.channelId ==
                                       ptemp->bssDescription.channelId) &&
-            palEqualMemory( pMac->hHdd,((tANI_U8 *) &pBssDescr->bssDescription.ieFields + 1),
+            vos_mem_compare( ((tANI_U8 *) &pBssDescr->bssDescription.ieFields + 1),
                            ((tANI_U8 *) &ptemp->bssDescription.ieFields + 1),
                            (tANI_U8) (ssidLen + 1)) &&
             ((pSirCapTemp->ess) || //we are done for infrastructure
@@ -757,7 +760,7 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
                             //Found it
                             if((DOT11F_IE_WSCPROBERES_MAX_LEN - 2) >= pbIe[1])
                             {
-                                palCopyMemory(pMac->hHdd, pBssDescr->bssDescription.WscIeProbeRsp,
+                                vos_mem_copy(pBssDescr->bssDescription.WscIeProbeRsp,
                                    pbIe, pbIe[1] + 2);
                                 pBssDescr->bssDescription.WscIeLen = pbIe[1] + 2;
                             }
@@ -786,7 +789,7 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
                 pMac->lim.gLimMlmScanResultLength -=
                     ptemp->bssDescription.length + sizeof(tANI_U16);
 
-                palFreeMemory( pMac->hHdd, (tANI_U8 *) ptemp);
+                vos_mem_free(ptemp);
             }
             found = true;
             break;
@@ -937,13 +940,13 @@ limLookupNaddLfrHashEntry(tpAniSirGlobal pMac,
     {
         //For infrastructure, check BSSID and SSID. For IBSS, check more
         pSirCapTemp = (tSirMacCapabilityInfo *)&ptemp->bssDescription.capabilityInfo;
-        if((pSirCapTemp->ess == pSirCap->ess) && //matching ESS type first
-            (palEqualMemory( pMac->hHdd,(tANI_U8 *) pBssDescr->bssDescription.bssId,
+        if ((pSirCapTemp->ess == pSirCap->ess) && //matching ESS type first
+            (vos_mem_compare( (tANI_U8 *) pBssDescr->bssDescription.bssId,
                       (tANI_U8 *) ptemp->bssDescription.bssId,
                       sizeof(tSirMacAddr))) &&   //matching BSSID
             (pBssDescr->bssDescription.channelId ==
                                       ptemp->bssDescription.channelId) &&
-            palEqualMemory( pMac->hHdd,((tANI_U8 *) &pBssDescr->bssDescription.ieFields + 1),
+            vos_mem_compare( ((tANI_U8 *) &pBssDescr->bssDescription.ieFields + 1),
                            ((tANI_U8 *) &ptemp->bssDescription.ieFields + 1),
                            (tANI_U8) (ssidLen + 1)) &&
             ((pSirCapTemp->ess) || //we are done for infrastructure
@@ -980,7 +983,7 @@ limLookupNaddLfrHashEntry(tpAniSirGlobal pMac,
                             //Found it
                             if((DOT11F_IE_WSCPROBERES_MAX_LEN - 2) >= pbIe[1])
                             {
-                                palCopyMemory(pMac->hHdd, pBssDescr->bssDescription.WscIeProbeRsp,
+                                vos_mem_copy( pBssDescr->bssDescription.WscIeProbeRsp,
                                    pbIe, pbIe[1] + 2);
                                 pBssDescr->bssDescription.WscIeLen = pbIe[1] + 2;
                             }
@@ -1009,7 +1012,7 @@ limLookupNaddLfrHashEntry(tpAniSirGlobal pMac,
                 pMac->lim.gLimMlmLfrScanResultLength -=
                     ptemp->bssDescription.length + sizeof(tANI_U16);
 
-                palFreeMemory( pMac->hHdd, (tANI_U8 *) ptemp);
+                vos_mem_free(ptemp);
             }
             break;
         }
@@ -1111,7 +1114,7 @@ limCopyScanResult(tpAniSirGlobal pMac, tANI_U8 *pDest)
             while(ptemp)
             {
                 /// Copy entire BSS description including length
-                palCopyMemory( pMac->hHdd, pDest,
+                vos_mem_copy( pDest,
                               (tANI_U8 *) &ptemp->bssDescription,
                               ptemp->bssDescription.length + 2);
                 pDest += ptemp->bssDescription.length + 2;
@@ -1158,7 +1161,7 @@ limDeleteCachedScanResults(tpAniSirGlobal pMac)
                 pNextNode = pNode->next;
 
                 // Delete the current node
-                palFreeMemory( pMac->hHdd, (tANI_U8 *) pNode);
+                vos_mem_free(pNode);
 
                 pNode = pNextNode;
             }
@@ -1236,7 +1239,7 @@ limDeleteCachedLfrScanResults(tpAniSirGlobal pMac)
                 pNextNode = pNode->next;
 
                 // Delete the current node
-                palFreeMemory( pMac->hHdd, (tANI_U8 *) pNode);
+                vos_mem_free(pNode);
 
                 pNode = pNextNode;
             }

@@ -40,15 +40,13 @@
  */
 
 /** ------------------------------------------------------------------------- * 
-    ------------------------------------------------------------------------- *  
 
-  
     \file csrSupport.h
-  
+
     Exports and types for the Common Scan and Roaming supporting interfaces.
   
    Copyright (C) 2006 Airgo Networks, Incorporated
- 
+
    ========================================================================== */
 #ifndef CSR_SUPPORT_H__
 #define CSR_SUPPORT_H__
@@ -68,7 +66,7 @@
 
 #define CSR_RSN_OUI_SIZE              ( 4 )
 #define CSR_RSN_VERSION_SUPPORTED     ( 1 )
-#define CSR_RSN_MAX_AUTH_SUITES       ( 16 )
+#define CSR_RSN_MAX_AUTH_SUITES       ( 4 )
 #define CSR_RSN_MAX_CYPHERS           ( 5 )
 #define CSR_RSN_MAX_UNICAST_CYPHERS   ( 5 )
 #define CSR_RSN_MAX_MULTICAST_CYPHERS ( 1 )
@@ -593,7 +591,9 @@ typedef __ani_attr_pre_packed struct tagCsrRSNCapabilities
     tANI_U16 NoPairwise:1;
     tANI_U16 PTKSAReplayCounter:2;
     tANI_U16 GTKSAReplayCounter:2;
-    tANI_U16 Reserved:10;
+    tANI_U16 MFPRequired:1;
+    tANI_U16 MFPCapable:1;
+    tANI_U16 Reserved:8;
 } __ani_attr_packed tCsrRSNCapabilities;
 
 typedef __ani_attr_pre_packed struct tagCsrRSNPMKIe 

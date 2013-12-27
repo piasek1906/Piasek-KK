@@ -39,6 +39,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+
 /*===========================================================================
 
                       s a p M o d u l e . C
@@ -53,9 +54,9 @@
 
   Are listed for each API below.
 
-  Copyright (c) 2010 QUALCOMM Incorporated.
+  Copyright (c) 2010 Qualcomm Technologies, Inc.
   All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -2176,7 +2177,7 @@ VOS_STATUS WLANSAP_RemainOnChannel( v_PVOID_t pvosGCtx,
         }
 
         halStatus = sme_RemainOnChannel( hHal, pSapCtx->sessionId,
-                          channel, duration, callback, pContext );
+                          channel, duration, callback, pContext, TRUE );
 
         if( eHAL_STATUS_SUCCESS == halStatus )
         {
