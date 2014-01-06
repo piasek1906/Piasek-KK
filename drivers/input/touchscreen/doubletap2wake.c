@@ -84,6 +84,7 @@ void power_on_display_dt2w(struct input_dev *input_device)
 {
        doubletap2wake_pwrdev = input_device;
 }
+
 /* Read cmdline for dt2w */
 static int __init read_dt2w_cmdline(char *dt2w)
 {

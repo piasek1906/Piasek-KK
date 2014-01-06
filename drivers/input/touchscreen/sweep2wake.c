@@ -53,7 +53,7 @@ MODULE_LICENSE("GPLv2");
 
 /* Tuneables */
 #define S2W_DEBUG		0
-#define S2W_DEFAULT		0 
+#define S2W_DEFAULT		0
 #define S2W_PWRKEY_DUR          60
 
 #ifdef CONFIG_MACH_MSM8974_HAMMERHEAD
@@ -95,10 +95,11 @@ struct input_dev * sweep2wake_pwrdev;
 static DEFINE_MUTEX(pwrkeyworklock);
 static struct workqueue_struct *s2w_input_wq;
 static struct work_struct s2w_input_work;
+
 /* PowerKey setter */
 void power_on_display(struct input_dev *input_device)
 {
-	sweep2wake_pwrdev = input_device;
+       sweep2wake_pwrdev = input_device;
 }
 
 /* Read cmdline for s2w */
@@ -107,7 +108,7 @@ static int __init read_s2w_cmdline(char *s2w)
 	if (strcmp(s2w, "1") == 0) {
 		pr_info("[cmdline_s2w]: Sweep2Wake enabled. | s2w='%s'\n", s2w);
 		s2w_switch = 1;
-        } else if (strcmp(s2w, "2") == 0) {
+	} else if (strcmp(s2w, "2") == 0) {
 		pr_info("[cmdline_s2w]: Sweep2Wake disabled. | s2w='%s'\n", s2w);
 		s2w_switch = 2;
 	} else if (strcmp(s2w, "0") == 0) {
@@ -380,7 +381,6 @@ static ssize_t s2w_sweep2wake_dump(struct device *dev,
 
 static DEVICE_ATTR(sweep2wake, (S_IWUSR|S_IRUGO),
 	s2w_sweep2wake_show, s2w_sweep2wake_dump);
-
 
 static ssize_t s2w_version_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
