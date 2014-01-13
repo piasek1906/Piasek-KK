@@ -37,6 +37,7 @@ enum ion_heap_ids {
 	ION_CP_MFC_HEAP_ID = 12,
 	ION_CP_WB_HEAP_ID = 16, /* 8660 only */
 	ION_CAMERA_HEAP_ID = 20, /* 8660 only */
+	ION_SYSTEM_CONTIG_HEAP_ID = 21,
 	ION_ADSP_HEAP_ID = 22,
 	ION_SF_HEAP_ID = 24,
 	ION_IOMMU_HEAP_ID = 25,
@@ -85,6 +86,7 @@ enum cp_mem_usage {
 
 #define ION_ADSP_HEAP_NAME	"adsp"
 #define ION_VMALLOC_HEAP_NAME	"vmalloc"
+#define ION_KMALLOC_HEAP_NAME   "kmalloc"
 #define ION_AUDIO_HEAP_NAME	"audio"
 #define ION_SF_HEAP_NAME	"sf"
 #define ION_MM_HEAP_NAME	"mm"
@@ -272,19 +274,6 @@ struct ion_flush_data {
 	unsigned int length;
 };
 
-/* struct ion_flag_data - information about flags for this buffer
- *
- * @handle:	handle to get flags from
- * @flags:	flags of this handle
- *
- * Takes handle as an input and outputs the flags from the handle
- * in the flag field.
- */
-struct ion_flag_data {
-	struct ion_handle *handle;
-	unsigned long flags;
-};
-
 #define ION_IOC_MSM_MAGIC 'M'
 
 /**
@@ -308,14 +297,4 @@ struct ion_flag_data {
  */
 #define ION_IOC_CLEAN_INV_CACHES	_IOWR(ION_IOC_MSM_MAGIC, 2, \
 						struct ion_flush_data)
-
-/**
- * DOC: ION_IOC_GET_FLAGS - get the flags of the handle
- *
- * Gets the flags of the current handle which indicate cachability,
- * secure state etc.
- */
-#define ION_IOC_GET_FLAGS		_IOWR(ION_IOC_MSM_MAGIC, 3, \
-						struct ion_flag_data)
-
 #endif

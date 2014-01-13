@@ -51,6 +51,11 @@ static struct ion_heap_desc ion_heap_meta[] = {
 		.name	= ION_VMALLOC_HEAP_NAME,
 	},
 	{
+		.id  	= ION_SYSTEM_CONTIG_HEAP_ID,
+		.type   = ION_HEAP_TYPE_SYSTEM_CONTIG,
+		.name   = ION_KMALLOC_HEAP_NAME,
+	},
+	{
 		.id	= ION_CP_MM_HEAP_ID,
 		.type	= ION_HEAP_TYPE_CP,
 		.name	= ION_MM_HEAP_NAME,
@@ -607,7 +612,7 @@ static long msm_ion_custom_ioctl(struct ion_client *client,
 		start = (unsigned long) data.vaddr;
 		end = (unsigned long) data.vaddr + data.length;
 
-		if (check_vaddr_bounds(start, end)) {
+		if (start && check_vaddr_bounds(start, end)) {
 			pr_err("%s: virtual address %p is out of bounds\n",
 				__func__, data.vaddr);
 			return -EINVAL;
@@ -634,22 +639,6 @@ static long msm_ion_custom_ioctl(struct ion_client *client,
 			return ret;
 		break;
 
-	}
-	case ION_IOC_GET_FLAGS:
-	{
-		struct ion_flag_data data;
-		int ret;
-		if (copy_from_user(&data, (void __user *)arg,
-					sizeof(struct ion_flag_data)))
-			return -EFAULT;
-
-		ret = ion_handle_get_flags(client, data.handle, &data.flags);
-		if (ret < 0)
-			return ret;
-		if (copy_to_user((void __user *)arg, &data,
-					sizeof(struct ion_flag_data)))
-			return -EFAULT;
-		break;
 	}
 	default:
 		return -ENOTTY;
