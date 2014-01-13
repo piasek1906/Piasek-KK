@@ -10,7 +10,7 @@ clear
 
 # Piasek Kernel Version
 BASE_SAND_VER="Piasek-KK"
-VER=".v7"
+VER=".v8"
 SAND_VER=$BASE_SAND_VER$VER
 
 # Piasek Variables
