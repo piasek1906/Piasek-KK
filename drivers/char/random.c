@@ -273,14 +273,6 @@
 /*
  * Configuration information
  */
-<<<<<<< HEAD
-#define INPUT_POOL_SHIFT  12
-#define INPUT_POOL_WORDS  (1 << (INPUT_POOL_SHIFT-5))
-#define OUTPUT_POOL_SHIFT  10
-#define OUTPUT_POOL_WORDS  (1 << (OUTPUT_POOL_SHIFT-5))
-#define SEC_XFER_SIZE    512
-#define EXTRACT_SIZE    10
-=======
 #define INPUT_POOL_SHIFT	12
 #define INPUT_POOL_WORDS	(1 << (INPUT_POOL_SHIFT-5))
 #define OUTPUT_POOL_SHIFT	10
@@ -301,24 +293,19 @@
  */
 #define ENTROPY_SHIFT 3
 #define ENTROPY_BITS(r) ((r)->entropy_count >> ENTROPY_SHIFT)
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 
 /*
  * The minimum number of bits of entropy before we wake up a read on
  * /dev/random.  Should be enough to do a significant reseed.
  */
-static int random_read_wakeup_thresh = 256;
+static int random_read_wakeup_thresh = 64;
 
 /*
  * If the entropy count falls under this number of bits, then we
  * should wake up processes which are selecting or polling on write
  * access to /dev/random.
  */
-<<<<<<< HEAD
-static int random_write_wakeup_thresh = 512;
-=======
 static int random_write_wakeup_thresh = 28 * OUTPUT_POOL_WORDS;
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 
 /*
  * The minimum number of seconds between urandom pool resending.  We
@@ -372,18 +359,7 @@ static int random_min_urandom_seed = 60;
  * polynomial which improves the resulting TGFSR polynomial to be
  * irreducible, which we have made here.
  */
-
 static struct poolinfo {
-<<<<<<< HEAD
-	int poolbitshift, poolwords, poolbytes, poolbits;
-#define S(x) ilog2(x)+5, (x), (x)*4, (x)*32
-	int tap1, tap2, tap3, tap4, tap5;
-} poolinfo_table[] = {
-	/* x^128 + x^103 + x^76 + x^51 +x^25 + x + 1 -- 105 */
-	{ S(128),	103,	76,	51,	25,	1 },
-	/* x^32 + x^26 + x^20 + x^14 + x^7 + x + 1 -- 15 */
-	{ S(32),	26,	20,	14,	7,	1 },
-=======
 	int poolbitshift, poolwords, poolbytes, poolbits, poolfracbits;
 #define S(x) ilog2(x)+5, (x), (x)*4, (x)*32, (x) << (ENTROPY_SHIFT+5)
 	int tap1, tap2, tap3, tap4, tap5;
@@ -394,7 +370,6 @@ static struct poolinfo {
 	/* was: x^32 + x^26 + x^20 + x^14 + x^7 + x + 1 */
 	/* x^32 + x^26 + x^19 + x^14 + x^7 + x + 1 */
 	{ S(32),	26,	19,	14,	7,	1 },
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 #if 0
 	/* x^2048 + x^1638 + x^1231 + x^819 + x^411 + x + 1  -- 115 */
 	{ S(2048),	1638,	1231,	819,	411,	1 },
@@ -424,52 +399,6 @@ static struct poolinfo {
 #endif
 };
 
-<<<<<<< HEAD
-/*
- * For the purposes of better mixing, we use the CRC-32 polynomial as
- * well to make a twisted Generalized Feedback Shift Reigster
- *
- * (See M. Matsumoto & Y. Kurita, 1992.  Twisted GFSR generators.  ACM
- * Transactions on Modeling and Computer Simulation 2(3):179-194.
- * Also see M. Matsumoto & Y. Kurita, 1994.  Twisted GFSR generators
- * II.  ACM Transactions on Mdeling and Computer Simulation 4:254-266)
- *
- * Thanks to Colin Plumb for suggesting this.
- *
- * We have not analyzed the resultant polynomial to prove it primitive;
- * in fact it almost certainly isn't.  Nonetheless, the irreducible factors
- * of a random large-degree polynomial over GF(2) are more than large enough
- * that periodicity is not a concern.
- *
- * The input hash is much less sensitive than the output hash.  All
- * that we want of it is that it be a good non-cryptographic hash;
- * i.e. it not produce collisions when fed "random" data of the sort
- * we expect to see.  As long as the pool state differs for different
- * inputs, we have preserved the input entropy and done a good job.
- * The fact that an intelligent attacker can construct inputs that
- * will produce controlled alterations to the pool's state is not
- * important because we don't consider such inputs to contribute any
- * randomness.  The only property we need with respect to them is that
- * the attacker can't increase his/her knowledge of the pool's state.
- * Since all additions are reversible (knowing the final state and the
- * input, you can reconstruct the initial state), if an attacker has
- * any uncertainty about the initial state, he/she can only shuffle
- * that uncertainty about, but never cause any collisions (which would
- * decrease the uncertainty).
- *
- * The chosen system lets the state of the pool be (essentially) the input
- * modulo the generator polymnomial.  Now, for random primitive polynomials,
- * this is a universal class of hash functions, meaning that the chance
- * of a collision is limited by the attacker's knowledge of the generator
- * polynomail, so if it is chosen at random, an attacker can never force
- * a collision.  Here, we use a fixed polynomial, but we *can* assume that
- * ###--> it is unknown to the processes generating the input entropy. <-###
- * Because of this important property, this is a good, collision-resistant
- * hash; hash collisions will occur no more often than chance.
- */
-
-=======
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 /*
  * Static global variables
  */
@@ -661,71 +590,21 @@ static void fast_mix(struct fast_pool *f, __u32 input[4])
 }
 
 /*
-<<<<<<< HEAD
- * Credit (or debit) the entropy store with n bits of entropy
- * The nbits value is given in units of 2^-16 bits, i.e. 0x10000 == 1 bit.
-=======
  * Credit (or debit) the entropy store with n bits of entropy.
  * Use credit_entropy_bits_safe() if the value comes from userspace
  * or otherwise should be checked for extreme values.
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
  */
 static void credit_entropy_bits(struct entropy_store *r, int nbits)
 {
 	int entropy_count, orig;
-<<<<<<< HEAD
-	const int pool_size = r->poolinfo->poolbits;
-=======
 	const int pool_size = r->poolinfo->poolfracbits;
 	int nfrac = nbits << ENTROPY_SHIFT;
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 
 	if (!nbits)
 		return;
 
 retry:
 	entropy_count = orig = ACCESS_ONCE(r->entropy_count);
-<<<<<<< HEAD
-	entropy_count += nbits;
-
-	if (nbits < 0) {
-		/* Debit. */
-		entropy_count += nbits;
-		} else {
-
-		/*
-		 * Credit: we have to account for the possibility of
-	 	 * overwriting already present entropy.  Even in the
-		 * ideal case of pure Shannon entropy, new contributions
-		 * approach the full value asymptotically:
-		 *
-		 *entropy <- entropy + (pool_size - entropy) *
-		 *  (1 - exp(-add_entropy/pool_size))
-		 *
-		 * For add_entropy <= pool_size then
-		 * (1 - exp(-add_entropy/pool_size)) >=
-		 *    (add_entropy/pool_size)*0.632...
-		 * so we can approximate the exponential with
-		 * add_entropy/(pool_size*2) and still be on the
-		 * safe side by adding at most one pool_size at a time.
-		 *
-	 	 * The use of pool_size-1 in the while statement is to
-		 * prevent rounding artifacts from making the loop
-		 * arbitrarily long; this limits the loop to poolshift
-		 * turns no matter how large nbits is.
-		 */
-		int pnbits  = nbits;
-		const int s = r->poolinfo->poolbitshift + 1;
-
-		do {
-			int anbits = min(pnbits, pool_size);
-
-		entropy_count +=
-			((pool_size - entropy_count)*anbits) >> s;
-		pnbits -= anbits;
-		} while (unlikely(entropy_count < pool_size-1 && pnbits));
-}
-=======
 	if (nfrac < 0) {
 		/* Debit */
 		entropy_count += nfrac;
@@ -765,7 +644,6 @@ retry:
 		} while (unlikely(entropy_count < pool_size-2 && pnfrac));
 	}
 
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 	if (entropy_count < 0) {
 		pr_warn("random: negative entropy/overflow: pool %s count %d\n",
 			r->name, entropy_count);
@@ -876,11 +754,8 @@ void add_device_randomness(const void *buf, unsigned int size)
 }
 EXPORT_SYMBOL(add_device_randomness);
 
-<<<<<<< HEAD
-=======
 static struct timer_rand_state input_timer_state = INIT_TIMER_RAND_STATE;
 
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 /*
  * This function adds entropy to the entropy "pool" by using timing
  * delays.  It uses the timer_rand_state structure to make an estimate
@@ -949,9 +824,6 @@ static void add_timer_randomness(struct timer_rand_state *state, unsigned num)
 void add_input_randomness(unsigned int type, unsigned int code,
 				 unsigned int value)
 {
-<<<<<<< HEAD
-	return;
-=======
 	static unsigned char last_value;
 
 	/* ignore autorepeat and the like */
@@ -962,7 +834,6 @@ void add_input_randomness(unsigned int type, unsigned int code,
 	add_timer_randomness(&input_timer_state,
 			     (type << 4) ^ code ^ (code >> 4) ^ value);
 	trace_add_input_randomness(ENTROPY_BITS(&input_pool));
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 }
 EXPORT_SYMBOL_GPL(add_input_randomness);
 
@@ -1039,33 +910,6 @@ static ssize_t extract_entropy(struct entropy_store *r, void *buf,
 static void _xfer_secondary_pool(struct entropy_store *r, size_t nbytes);
 static void xfer_secondary_pool(struct entropy_store *r, size_t nbytes)
 {
-<<<<<<< HEAD
-	union {
-		__u32	tmp[OUTPUT_POOL_WORDS];
-		long	hwrand[4];
-	} u;
-	int	i;
-
-	if (r->pull && r->entropy_count < nbytes * 8 &&
-	    r->entropy_count < r->poolinfo->poolbits) {
-		/* If we're limited, always leave two wakeup worth's BITS */
-		int rsvd = r->limit ? 0 : random_read_wakeup_thresh/4;
-		int bytes = nbytes;
-
-		/* pull at least as many as BYTES as wakeup BITS */
-		bytes = max_t(int, bytes, random_read_wakeup_thresh / 8);
-		/* but never more than the buffer size */
-		bytes = min_t(int, bytes, sizeof(u.tmp));
-
-		DEBUG_ENT("going to reseed %s with %d bits "
-			  "(%d of %d requested)\n",
-			  r->name, bytes * 8, nbytes * 8, r->entropy_count);
-
-		bytes = extract_entropy(r->pull, u.tmp, bytes,
-					random_read_wakeup_thresh / 8, rsvd);
-		mix_pool_bytes(r, u.tmp, bytes, NULL);
-		credit_entropy_bits(r, bytes*8);
-=======
 	if (r->limit == 0 && random_min_urandom_seed) {
 		unsigned long now = jiffies;
 
@@ -1073,7 +917,6 @@ static void xfer_secondary_pool(struct entropy_store *r, size_t nbytes)
 				r->last_pulled + random_min_urandom_seed * HZ))
 			return;
 		r->last_pulled = now;
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 	}
 	if (r->pull &&
 	    r->entropy_count < (nbytes << (ENTROPY_SHIFT + 3)) &&
@@ -1142,13 +985,7 @@ static size_t account(struct entropy_store *r, size_t nbytes, int min,
 	/* Hold lock while accounting */
 	spin_lock_irqsave(&r->lock, flags);
 
-<<<<<<< HEAD
-	BUG_ON(r->entropy_count > r->poolinfo->poolbits);
-	DEBUG_ENT("trying to extract %d bits from %s\n",
-		  nbytes * 8, r->name);
-=======
 	BUG_ON(r->entropy_count > r->poolinfo->poolfracbits);
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 
 	/* Can we pull enough? */
 retry:
@@ -1451,9 +1288,6 @@ void rand_initialize_disk(struct gendisk *disk)
 static ssize_t
 random_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
 {
-<<<<<<< HEAD
-return extract_entropy_user(&nonblocking_pool, buf, nbytes);
-=======
 	ssize_t n, retval = 0, count = 0;
 
 	if (nbytes == 0)
@@ -1501,7 +1335,6 @@ return extract_entropy_user(&nonblocking_pool, buf, nbytes);
 	}
 
 	return (count ? count : retval);
->>>>>>> 3309e70... random: backport updates from Linux master (3.13-rc4)
 }
 
 static ssize_t
